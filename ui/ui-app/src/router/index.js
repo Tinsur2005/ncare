@@ -42,6 +42,7 @@ import NewsList from '@/views/NewsList.vue'
 import NewsDetail from '@/views/NewsDetail.vue'
 import HelpList from '@/views/HelpList.vue'
 import HelpSubmit from '@/views/HelpSubmit.vue'
+import About from '@/views/About.vue'
 
 //创建路由器
 const router = createRouter({
@@ -72,7 +73,8 @@ const router = createRouter({
                 {path: '/news', component: NewsList},
                 {path: '/newsDetail', component: NewsDetail},
                 {path: '/help', component: HelpList},
-                {path: '/helpSubmit', component: HelpSubmit}
+                {path: '/helpSubmit', component: HelpSubmit},
+                {path: '/about', component: About}
             ]
         }
     ]

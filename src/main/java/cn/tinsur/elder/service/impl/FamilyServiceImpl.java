@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -124,10 +125,12 @@ public class FamilyServiceImpl extends ServiceImpl<FamilyMapper, Family> impleme
         Map<Long, List<ElderFamily>> groupByFamilyElder = elderFamilies.stream()
                 .collect(Collectors.groupingBy(ElderFamily::getFamilyId));
         //      再把每个家属名下的 elder_id 逐条翻译成 Elder 对象，收成一个列表
+        //      老人被逻辑删除后绑定关系还在，map里取不到会得到null，过滤掉避免前端遍历时崩溃
         Map<Long, List<Elder>> groupByFamily = new HashMap<>();
         groupByFamilyElder.forEach((familyId, efList) -> {
             List<Elder> elders = efList.stream()
                     .map(ef -> elderMap.get(ef.getElderId()))
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
             groupByFamily.put(familyId, elders);
         });

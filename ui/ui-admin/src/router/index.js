@@ -45,6 +45,9 @@ import Building from '@/views/Building.vue'
 import Floor from '@/views/Floor.vue'
 import Room from '@/views/Room.vue'
 import Bed from '@/views/Bed.vue'
+import CheckInProcess from '@/views/CheckInProcess.vue'
+import CheckOutProcess from '@/views/CheckOutProcess.vue'
+import CheckRecord from '@/views/CheckRecord.vue'
 
 //创建路由器
 const router = createRouter({
@@ -77,7 +80,10 @@ const router = createRouter({
                 {path: '/building', component: Building},
                 {path: '/floor', component: Floor},
                 {path: '/room', component: Room},
-                {path: '/bed', component: Bed}
+                {path: '/bed', component: Bed},
+                {path: '/checkInProcess', component: CheckInProcess},
+                {path: '/checkOutProcess', component: CheckOutProcess},
+                {path: '/checkRecord', component: CheckRecord}
             ]
         }
     ]

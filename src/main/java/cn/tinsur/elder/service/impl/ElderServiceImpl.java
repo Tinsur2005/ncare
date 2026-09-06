@@ -50,6 +50,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -149,10 +150,12 @@ public class ElderServiceImpl extends ServiceImpl<ElderMapper, Elder> implements
         Map<Long, List<ElderTag>> groupByElderTag = elderTags.stream()
                 .collect(Collectors.groupingBy(ElderTag::getElderId));
         //      再把每个老人名下的 tag_id 逐条翻译成 Tag 对象，收成一个列表
+        //      标签被逻辑删除后绑定关系还在，map里取不到会得到null，过滤掉避免前端遍历时崩溃
         Map<Long, List<Tag>> groupByElder = new HashMap<>();
         groupByElderTag.forEach((elderId, etList) -> {
             List<Tag> tags = etList.stream()
                     .map(et -> tagMap.get(et.getTagId()))
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
             groupByElder.put(elderId, tags);
         });

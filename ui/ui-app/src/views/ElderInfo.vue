@@ -17,9 +17,10 @@
  * ============================================================
 -->
 <script setup>
-  import {computed} from 'vue'
+  import {computed, ref, watch} from 'vue'
   import {useRouter} from 'vue-router'
   import {useUserInfoStore} from '@/store/userInfo.js'
+  import userApi from '@/api/user.js'
 
   const userInfoStore = useUserInfoStore()
   const router = useRouter()
@@ -33,6 +34,26 @@
     }
     return userInfoStore.user
   })
+
+  // ================== 床位 ==================
+
+  // 当前老人的入住床位信息（楼栋楼层房间床位），未入住时为null不显示床位信息
+  const bedInfo = ref(null)
+
+  // 加载当前老人的床位信息（家属切换老人后重新加载）
+  const loadBedInfo = () => {
+    if (!currentElder.value.id) {
+      bedInfo.value = null
+      return
+    }
+    userApi.bedInfo(currentElder.value.id).then(result => {
+      bedInfo.value = result.data
+    })
+  }
+  loadBedInfo()
+
+  //家属切换查看的老人后刷新床位信息
+  watch(() => userInfoStore.currentElderId, loadBedInfo)
 
   // ================== 选项 ==================
 
@@ -96,11 +117,6 @@
       </div>
     </div>
 
-    <!-- 老人标注 -->
-    <div class="info-tags" v-if="currentElder.tags && currentElder.tags.length > 0">
-      <van-tag plain type="primary" v-for="tag in currentElder.tags" :key="tag.id">{{ tag.name }}</van-tag>
-    </div>
-
     <!-- 基础信息 -->
     <van-cell-group inset title="基础信息" class="info-group">
       <van-cell title="姓名" :value="currentElder.realName"/>
@@ -109,13 +125,17 @@
       <van-cell title="年龄" :value="`${getAge(currentElder.birthday)}岁`"/>
       <van-cell title="身份证号" :value="currentElder.idCardNo"/>
       <van-cell title="联系电话" :value="currentElder.phone"/>
-    </van-cell-group>
-
-    <!-- 住址与状态 -->
-    <van-cell-group inset title="住址与状态" class="info-group">
       <van-cell title="家庭住址" :value="currentElder.address"/>
       <van-cell title="当前状态" :value="getStatus(currentElder.status)"/>
       <van-cell title="备注" :value="currentElder.remark || '-'"/>
+    </van-cell-group>
+
+    <!-- 床位信息（未入住时不显示） -->
+    <van-cell-group inset title="床位信息" class="info-group" v-if="bedInfo">
+      <van-cell title="楼栋" :value="bedInfo.buildingName"/>
+      <van-cell title="楼层" :value="`${bedInfo.floorNo}层`"/>
+      <van-cell title="房间" :value="`${bedInfo.roomNo}房`"/>
+      <van-cell title="床位" :value="bedInfo.bedNo"/>
     </van-cell-group>
   </div>
 </template>
@@ -158,12 +178,6 @@
     margin-top: 4px;
     font-size: 13px;
     color: #999;
-  }
-
-  .info-tags {
-    margin: 12px 16px 0;
-    display: flex;
-    gap: 8px;
   }
 
   .info-group {

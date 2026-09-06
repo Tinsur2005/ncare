@@ -141,10 +141,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         Map<Long, List<UserRole>> groupByUserRole = userRoles.stream()
                 .collect(Collectors.groupingBy(UserRole::getUserId));
         //      再把每个用户名下的 role_id 逐条翻译成 Role 对象，收成一个列表
+        //      角色被逻辑删除后绑定关系还在，map里取不到会得到null，过滤掉避免前端遍历时崩溃
         Map<Long, List<Role>> groupByUser = new HashMap<>();
         groupByUserRole.forEach((userId, urList) -> {
             List<Role> roles = urList.stream()
                     .map(ur -> roleMap.get(ur.getRoleId()))
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
             groupByUser.put(userId, roles);
         });

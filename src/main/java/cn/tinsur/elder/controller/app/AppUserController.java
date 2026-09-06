@@ -23,8 +23,10 @@ import cn.tinsur.elder.pojo.dto.AppLoginDTO;
 import cn.tinsur.elder.pojo.entity.Elder;
 import cn.tinsur.elder.pojo.entity.Family;
 import cn.tinsur.elder.pojo.vo.ElderVO;
+import cn.tinsur.elder.service.IBedService;
 import cn.tinsur.elder.service.IElderService;
 import cn.tinsur.elder.service.IFamilyService;
+import cn.tinsur.elder.util.AppAuthHelper;
 import cn.tinsur.elder.util.JwtUtil;
 import cn.tinsur.elder.util.Result;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -53,6 +55,12 @@ public class AppUserController {
 
     @Autowired
     private IFamilyService familyService;
+
+    @Autowired
+    private IBedService bedService;
+
+    @Autowired
+    private AppAuthHelper appAuthHelper;
 
     /**
      * 登录（前台手机端统一入口）
@@ -140,5 +148,23 @@ public class AppUserController {
             resultMap.put("elders", new ArrayList<>());
         }
         return Result.ok(resultMap);
+    }
+
+    /**
+     * 查询老人当前入住的床位信息（楼栋名称、楼层号、房间号、床位号），未入住时data为null
+     * GET /users/bedInfo?elderId=1
+     * @param elderId 老人ID
+     * @param token
+     * @return
+     */
+    @GetMapping("/bedInfo")
+    public Result bedInfo(@RequestParam Long elderId,
+                          @RequestHeader(name = "Authorization") String token) {
+        //校验归属：老人只能查自己的，家属只能查绑定老人的
+        Result checkResult = appAuthHelper.checkElderPermission(token, elderId);
+        if (checkResult.getCode() != Result.OK) {
+            return checkResult;
+        }
+        return Result.ok(bedService.getOccupiedByElderId(elderId));
     }
 }

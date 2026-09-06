@@ -41,11 +41,22 @@
   // 是否显示切换老人弹层
   const showElderPicker = ref(false)
 
-  // 我的页面菜单
-  const menus = [
-    {title: '个人信息', icon: 'user-circle-o', path: '/elderInfo'},
-    {title: '我的合同', icon: 'bill-o', path: '/contract'}
-  ]
+  // 我的页面菜单（家属端展示当前选中老人的信息和合同，老人端固定展示自己的；关于我们两端共用）
+  const menus = computed(() => {
+    if (isFamily.value) {
+      const name = currentElder.value.realName || '老人'
+      return [
+        {title: `${name}的信息`, icon: 'user-circle-o', path: '/elderInfo'},
+        {title: `${name}的合同`, icon: 'bill-o', path: '/contract'},
+        {title: '关于我们', icon: 'info-o', path: '/about'}
+      ]
+    }
+    return [
+      {title: '个人信息', icon: 'user-circle-o', path: '/elderInfo'},
+      {title: '我的合同', icon: 'bill-o', path: '/contract'},
+      {title: '关于我们', icon: 'info-o', path: '/about'}
+    ]
+  })
 
   // ================== 方法 ==================
 

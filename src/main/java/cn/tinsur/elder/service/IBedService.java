@@ -61,4 +61,11 @@ public interface IBedService extends IService<Bed> {
      * @return 空闲床位的List列表
      */
     List<Bed> listFree();
+
+    /**
+     * 根据老人ID查询其占用的床位（补充楼栋名称、楼层号和房间号），未入住时返回null
+     * @param elderId 老人ID
+     * @return 床位视图对象
+     */
+    BedVO getOccupiedByElderId(Long elderId);
 }

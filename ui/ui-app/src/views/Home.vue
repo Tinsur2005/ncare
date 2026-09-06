@@ -17,11 +17,12 @@
  * ============================================================
 -->
 <script setup>
-  import {computed, ref} from 'vue'
+  import {computed, ref, watch} from 'vue'
   import {useRouter} from 'vue-router'
   import {useUserInfoStore} from '@/store/userInfo.js'
   import announcementApi from '@/api/announcement.js'
   import newsApi from '@/api/news.js'
+  import userApi from '@/api/user.js'
 
   const userInfoStore = useUserInfoStore()
   const router = useRouter()
@@ -69,6 +70,26 @@
   const noticeList = ref([])
   // 是否显示最近公告弹层
   const showNotice = ref(false)
+
+  // ================== 床位 ==================
+
+  // 当前老人的入住床位信息（楼栋楼层房间床位），未入住时为null不显示卡片
+  const bedInfo = ref(null)
+
+  // 加载当前老人的床位信息（家属切换老人后重新加载）
+  const loadBedInfo = () => {
+    if (!currentElder.value.id) {
+      bedInfo.value = null
+      return
+    }
+    userApi.bedInfo(currentElder.value.id).then(result => {
+      bedInfo.value = result.data
+    })
+  }
+  loadBedInfo()
+
+  //家属切换查看的老人后刷新床位信息
+  watch(() => userInfoStore.currentElderId, loadBedInfo)
 
   // ================== 对象（资讯） ==================
 
@@ -163,10 +184,6 @@
       <h3 class="home-title">您好，{{ currentElder.realName }}{{ isFamily ? '的家属' : '' }}</h3>
       <p class="home-subtitle" v-if="isFamily">当前查看：{{ currentElder.realName }}（{{ getAge(currentElder.birthday) }}岁）</p>
       <p class="home-subtitle" v-else>今天也要注意身体哦</p>
-      <!-- 老人标注 -->
-      <div class="home-tags" v-if="currentElder.tags && currentElder.tags.length > 0">
-        <van-tag color="rgba(255, 255, 255, 0.25)" text-color="#FFFFFF" v-for="tag in currentElder.tags" :key="tag.id">{{ tag.name }}</van-tag>
-      </div>
     </div>
 
     <div class="home-body">
@@ -174,6 +191,39 @@
       <van-notice-bar class="demo-notice" left-icon="info-o" wrapable :scrollable="false">
         请注意：本系统为演示系统，仅供作品演示使用，不具有任何服务性质，请勿在系统填写敏感信息！
       </van-notice-bar>
+
+      <!-- 公告通知条 -->
+      <div class="home-notice" v-if="noticeList.length > 0" @click="openNotice">
+        <van-icon name="volume-o" size="16"/>
+        <span class="home-notice-text">{{ noticeList[0].title }}</span>
+        <van-icon name="arrow" size="14"/>
+      </div>
+
+      <!-- 床位信息卡片（未入住时不显示） -->
+      <div class="home-bed" v-if="bedInfo">
+        <div class="bed-header">
+          <van-icon name="location-o" size="16" color="#1989FA"/>
+          <span class="bed-title">我的床位</span>
+        </div>
+        <div class="bed-info">
+          <div class="bed-item">
+            <p class="bed-label">楼栋</p>
+            <p class="bed-value">{{ bedInfo.buildingName }}</p>
+          </div>
+          <div class="bed-item">
+            <p class="bed-label">楼层</p>
+            <p class="bed-value">{{ bedInfo.floorNo }}层</p>
+          </div>
+          <div class="bed-item">
+            <p class="bed-label">房间</p>
+            <p class="bed-value">{{ bedInfo.roomNo }}房</p>
+          </div>
+          <div class="bed-item">
+            <p class="bed-label">床位</p>
+            <p class="bed-value">{{ bedInfo.bedNo }}</p>
+          </div>
+        </div>
+      </div>
 
       <!-- 功能入口 -->
       <div class="home-grid-card">
@@ -183,13 +233,6 @@
             <span class="grid-title">{{ item.title }}</span>
           </van-grid-item>
         </van-grid>
-      </div>
-
-      <!-- 公告通知条 -->
-      <div class="home-notice" v-if="noticeList.length > 0" @click="openNotice">
-        <van-icon name="volume-o" size="16"/>
-        <span class="home-notice-text">{{ noticeList[0].title }}</span>
-        <van-icon name="arrow" size="14"/>
       </div>
 
       <!-- 最新资讯（加载中显示骨架屏占位） -->
@@ -270,13 +313,6 @@
     color: rgba(255, 255, 255, 0.85);
   }
 
-  .home-tags {
-    margin-top: 12px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
   /* 内容区上叠在蓝色头部上 */
   .home-body {
     padding: 0 12px;
@@ -307,8 +343,9 @@
     margin-bottom: 12px;
   }
 
-  /* 功能入口 */
+  /* 功能入口（在公告条和床位卡片之下） */
   .home-grid-card {
+    margin-top: 12px;
     background-color: #FFFFFF;
     border-radius: 12px;
     padding: 8px 0;
@@ -320,9 +357,8 @@
     color: #323233;
   }
 
-  /* 公告通知条 */
+  /* 公告通知条（紧跟演示提示条，间距由提示条的下边距提供） */
   .home-notice {
-    margin-top: 12px;
     background-color: #E8F3FF;
     border-radius: 8px;
     padding: 10px 12px;
@@ -342,6 +378,48 @@
 
   .home-notice > .van-icon:last-child {
     flex-shrink: 0;
+  }
+
+  /* 床位信息卡片 */
+  .home-bed {
+    margin-top: 12px;
+    background-color: #FFFFFF;
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  .bed-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .bed-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #323233;
+  }
+
+  .bed-info {
+    margin-top: 12px;
+    display: flex;
+  }
+
+  .bed-item {
+    flex: 1;
+    text-align: center;
+  }
+
+  .bed-label {
+    font-size: 12px;
+    color: #999;
+  }
+
+  .bed-value {
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #323233;
   }
 
   /* 最新资讯板块 */

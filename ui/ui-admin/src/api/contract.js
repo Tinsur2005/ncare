@@ -43,6 +43,10 @@ const contractApi = {
     deleteAll(ids) {
         // axios 的 delete 第2个参数是 config，请求体必须放在 data 字段里
         return request.delete("/contracts", {data: ids});
+    },
+    // 判断合同编号是否存在
+    isExists(contractNo) {
+        return request.get("/contracts/isExists", {params: {contractNo}});
     }
 }
 

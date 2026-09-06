@@ -140,6 +140,22 @@ public class BedServiceImpl extends ServiceImpl<BedMapper, Bed> implements IBedS
                 .orderByAsc(Bed::getBedNo));
     }
 
+    @Override
+    public BedVO getOccupiedByElderId(Long elderId) {
+        //在住与否以床位占用为准：查该老人占用的床位，一个老人最多占用一个床位
+        Bed bed = bedMapper.selectOne(new LambdaQueryWrapper<Bed>()
+                .eq(Bed::getElderId, elderId)
+                .eq(Bed::getStatus, STATUS_OCCUPIED)
+                .last("limit 1"));
+        if (ObjectUtils.isEmpty(bed)) {
+            return null;
+        }
+        BedVO bedVO = new BedVO();
+        BeanUtils.copyProperties(bed, bedVO);
+        fillBuildingFloorRoomInfo(List.of(bedVO));
+        return bedVO;
+    }
+
     /**
      * 按楼层ID或楼栋ID解析出房间ID集合
      * @param floorId 楼层ID（可为空）
