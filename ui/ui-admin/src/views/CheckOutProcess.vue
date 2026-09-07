@@ -48,7 +48,7 @@
 
   // ================== 选项 ==================
 
-  //在住老人远程搜索：返回全部可发起退住的老人，附带床位、客户和入住信息，供下拉框展示"姓名（身份证号）"，无床位的标注且不允许选择
+  //老人远程搜索：入住、退住共用同一接口，返回全部老人（附带床位占用和状态），退住办理展示全部老人，不可退住的在选项里标注并禁选
   const inElderOptions = ref([])
   const inElderLoading = ref(false)
   const loadInElderOptions = (query) => {
@@ -57,11 +57,26 @@
       return
     }
     inElderLoading.value = true
-    checkInApi.listInElders(query).then(result => {
-      inElderOptions.value = result.data
+    checkInApi.listCheckInElders(query).then(result => {
+      inElderOptions.value = result.data || []
     }).finally(() => {
       inElderLoading.value = false
     })
+  }
+
+  //老人选项展示文案：先按老人状态标注办理中的流程，再看床位（退住要求老人占用床位，没床位的标注无床位）
+  const inElderLabel = (item) => {
+    const base = `${item.realName}（${item.idCardNo}）`
+    if (item.status === 4) return `${base}（入住流程中）` //入住中：正在办理入住，还没占用床位
+    if (item.status === 3) return `${base}（退住流程中）` //退住中：正在办理退住
+    if (item.status === 0) return `${base}（已停用）`
+    if (!item.bedId) return `${base}（无床位）`           //没有占用床位，无退住可办
+    return base
+  }
+
+  //不可办理退住的老人：处于停用(0)/入住中(4)/退住中(3)状态，或没有占用床位
+  const inElderDisabled = (item) => {
+    return !item.bedId || item.status === 0 || item.status === 3 || item.status === 4
   }
 
   //当前选中在住老人的对象，用于在第一步回显其床位、客户和入住信息
@@ -242,8 +257,8 @@
             <el-option
                 v-for="item in inElderOptions"
                 :key="item.elderId"
-                :label="item.bedId ? `${item.realName}（${item.idCardNo}）` : `${item.realName}（${item.idCardNo}）（无床位）`"
-                :disabled="!item.bedId"
+                :label="inElderLabel(item)"
+                :disabled="inElderDisabled(item)"
                 :value="item.elderId"
             />
           </el-select>

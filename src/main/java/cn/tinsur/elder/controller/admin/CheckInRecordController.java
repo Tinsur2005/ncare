@@ -51,12 +51,12 @@ public class CheckInRecordController {
     }
 
     /**
-     * 远程搜索在住老人（仅status=4入住中），供退住办理第一步选择老人使用
-     * GET /check-ins/in-elders?name=张
+     * 远程搜索全部老人（不过滤状态，附带床位占用和老人状态），供入住、退住办理第一步选择老人共用，由前端标注并禁选不可办理的老人
+     * GET /check-ins/check-in-elders?name=张
      */
-    @GetMapping("/in-elders")
-    public Result<List<CheckInElderVO>> listInElders(@RequestParam(required = false) String name) {
-        return Result.ok(checkInRecordService.listInElders(name));
+    @GetMapping("/check-in-elders")
+    public Result<List<CheckInElderVO>> listCheckInElders(@RequestParam(required = false) String name) {
+        return Result.ok(checkInRecordService.listCheckInElders(name));
     }
 
     /**

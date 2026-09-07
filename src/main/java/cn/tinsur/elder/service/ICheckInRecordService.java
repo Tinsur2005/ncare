@@ -54,11 +54,11 @@ public interface ICheckInRecordService extends IService<CheckInRecord> {
     CheckInRecordVO getVOById(Long id);
 
     /**
-     * 远程搜索在住老人（仅status=4入住中），供退住办理第一步选择老人使用
+     * 远程搜索全部老人（不过滤状态），供入住、退住办理第一步选择老人共用
      * @param name 老人真实姓名关键字（可空）
-     * @return 在住老人VO列表（附带床位、客户和入住信息）
+     * @return 老人VO列表（附带床位占用和老人状态，由前端标注并禁选不可办理的老人）
      */
-    List<CheckInElderVO> listInElders(String name);
+    List<CheckInElderVO> listCheckInElders(String name);
 
     /**
      * 第一步完成时创建办理单（入住：登记客户和老人；退住：选择在住老人并把老人置为退住中）

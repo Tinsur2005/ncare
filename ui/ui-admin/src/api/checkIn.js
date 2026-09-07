@@ -27,9 +27,9 @@ const checkInApi = {
     selectById(id) {
         return request.get(`/check-ins/${id}`);
     },
-    // 远程搜索在住老人（仅入住中状态），供退住办理第一步选择老人使用
-    listInElders(name) {
-        return request.get("/check-ins/in-elders", {params: {name}});
+    // 远程搜索全部老人（含状态和床位占用信息），供入住、退住办理第一步选择老人共用
+    listCheckInElders(name) {
+        return request.get("/check-ins/check-in-elders", {params: {name}});
     },
     // 第一步完成时创建办理单（入住：登记客户和老人；退住：选择在住老人）
     add(checkInAddDTO) {

@@ -18,7 +18,6 @@
 -->
 <script setup>
   import checkInApi from '@/api/checkIn.js'
-  import elderApi from '@/api/elder.js'
   import familyApi from '@/api/family.js'
   import buildingApi from '@/api/building.js'
   import floorApi from '@/api/floor.js'
@@ -108,7 +107,7 @@
     })
   }
 
-  // 老人远程搜索：入住办理可选的老人范围为非停用且非办理中（入住中4/退住中3都表示正在办理对应流程）
+  // 老人远程搜索：入住办理展示全部老人，由后端附带床位占用和状态，不可办理的在选项里标注并禁选
   const elderOptions = ref([])
   const elderLoading = ref(false)
   const loadElderOptions = (query) => {
@@ -117,12 +116,26 @@
       return
     }
     elderLoading.value = true
-    elderApi.searchByName(query).then(result => {
-      //过滤掉停用(0)、退住中(3)和入住中(4)的老人
-      elderOptions.value = (result.data || []).filter(item => item.status !== 0 && item.status !== 3 && item.status !== 4)
+    checkInApi.listCheckInElders(query).then(result => {
+      elderOptions.value = result.data || []
     }).finally(() => {
       elderLoading.value = false
     })
+  }
+
+  //老人选项展示文案：先按老人状态标注办理中的流程（退住中床位尚未释放，状态判断要在床位之前），再按床位占用标注已入住
+  const elderLabel = (item) => {
+    const base = `${item.realName}（${item.idCardNo}）`
+    if (item.status === 4) return `${base}（入住流程中）` //入住中：正在办理入住，流程还没走完
+    if (item.status === 3) return `${base}（退住流程中）` //退住中：正在办理退住，床位还没释放
+    if (item.status === 0) return `${base}（已停用）`
+    if (item.bedId) return `${base}（已入住）`           //正常在住：已完成入住流程，占用床位
+    return base
+  }
+
+  //不可办理入住的老人：已占用床位，或处于停用(0)/入住中(4)/退住中(3)状态
+  const elderDisabled = (item) => {
+    return !!item.bedId || item.status === 0 || item.status === 3 || item.status === 4
   }
 
   //楼栋、楼层、房间选项：进入页面一次加载全部，入住登记时逐级过滤
@@ -506,9 +519,10 @@
               style="width: 260px">
             <el-option
                 v-for="item in elderOptions"
-                :key="item.id"
-                :label="`${item.realName}（${item.idCardNo}）`"
-                :value="item.id"
+                :key="item.elderId"
+                :label="elderLabel(item)"
+                :disabled="elderDisabled(item)"
+                :value="item.elderId"
             />
           </el-select>
         </el-form-item>

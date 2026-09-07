@@ -6,7 +6,7 @@ import java.util.Date;
 
 /**
  * <p>
- * 在住老人视图对象（供退住办理第一步选择老人时回显床位、客户和入住信息）
+ * 办理老人视图对象（供入住、退住办理第一步选择老人共用，附带老人状态和床位占用信息，前端按规则标注并禁选）
  * </p>
  *
  * @author Tinsur
@@ -19,6 +19,11 @@ public class CheckInElderVO {
      * 老人ID
      */
     private Long elderId;
+
+    /**
+     * 老人状态（0已停用 1正常 2请假 3退住中 4入住中 5已退住）
+     */
+    private Integer status;
 
     /**
      * 老人姓名

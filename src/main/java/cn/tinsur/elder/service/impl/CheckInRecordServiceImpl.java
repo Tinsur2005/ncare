@@ -187,14 +187,12 @@ public class CheckInRecordServiceImpl extends ServiceImpl<CheckInRecordMapper, C
     }
 
     @Override
-    public List<CheckInElderVO> listInElders(String name) {
-        //搜索范围为全部老人：排除停用(0)、退住中(3)和入住中(4)，在住与否以床位占用为准，没占床位的由前端标注无床位并禁选
+    public List<CheckInElderVO> listCheckInElders(String name) {
+        //供入住、退住办理第一步共用：搜索范围为全部老人（不过滤状态），附带床位占用和老人状态，由前端标注并禁选不可办理的老人
         List<Elder> elders = elderMapper.selectList(new LambdaQueryWrapper<Elder>()
-                .ne(Elder::getStatus, ELDER_STATUS_DISABLED)
-                .ne(Elder::getStatus, ELDER_STATUS_CHECKING_OUT)
-                .ne(Elder::getStatus, ELDER_STATUS_IN)
                 .like(!ObjectUtils.isEmpty(name), Elder::getRealName, name)
-                .orderByDesc(Elder::getCreateTime));
+                .orderByDesc(Elder::getCreateTime)
+                .last("LIMIT 20"));
         if (ObjectUtils.isEmpty(elders)) {
             return List.of();
         }
@@ -227,6 +225,7 @@ public class CheckInRecordServiceImpl extends ServiceImpl<CheckInRecordMapper, C
             vo.setElderId(elder.getId());
             vo.setRealName(elder.getRealName());
             vo.setIdCardNo(elder.getIdCardNo());
+            vo.setStatus(elder.getStatus());
             vo.setGender(elder.getGender());
             vo.setPhone(elder.getPhone());
             Bed bed = bedMap.get(elder.getId());
