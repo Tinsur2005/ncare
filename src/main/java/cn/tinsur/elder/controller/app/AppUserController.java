@@ -19,8 +19,10 @@
 package cn.tinsur.elder.controller.app;
 
 
+import cn.tinsur.elder.mapper.ElderFamilyMapper;
 import cn.tinsur.elder.pojo.dto.AppLoginDTO;
 import cn.tinsur.elder.pojo.entity.Elder;
+import cn.tinsur.elder.pojo.entity.ElderFamily;
 import cn.tinsur.elder.pojo.entity.Family;
 import cn.tinsur.elder.pojo.vo.ElderVO;
 import cn.tinsur.elder.service.IBedService;
@@ -30,6 +32,7 @@ import cn.tinsur.elder.util.AppAuthHelper;
 import cn.tinsur.elder.util.JwtUtil;
 import cn.tinsur.elder.util.PasswordUtil;
 import cn.tinsur.elder.util.Result;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -59,6 +62,9 @@ public class AppUserController {
 
     @Autowired
     private IBedService bedService;
+
+    @Autowired
+    private ElderFamilyMapper elderFamilyMapper;
 
     @Autowired
     private AppAuthHelper appAuthHelper;
@@ -142,13 +148,37 @@ public class AppUserController {
                     .toList();
             resultMap.put("elders", elders);
         } else {
-            //老人：返回自己的信息，密码置为NULL，elders为空列表
+            //老人：返回自己的信息，密码置为NULL，elders为空列表，family为绑定的家属/监护人（未绑定时为null）
             ElderVO elder = elderService.getVOById(id);
             elder.setPassword(null);
             resultMap.put("user", elder);
             resultMap.put("elders", new ArrayList<>());
+            resultMap.put("family", getBoundFamily(id));
         }
         return Result.ok(resultMap);
+    }
+
+    /**
+     * 查询老人绑定的家属/监护人（取最早绑定的一条），未绑定时返回null
+     * @param elderId 老人ID
+     * @return 家属姓名和联系电话（只回传展示字段，不暴露密码等敏感信息）
+     */
+    private Map<String, Object> getBoundFamily(Long elderId) {
+        ElderFamily binding = elderFamilyMapper.selectOne(new LambdaQueryWrapper<ElderFamily>()
+                .eq(ElderFamily::getElderId, elderId)
+                .orderByAsc(ElderFamily::getCreateTime)
+                .last("LIMIT 1"));
+        if (binding == null) {
+            return null;
+        }
+        Family family = familyService.getById(binding.getFamilyId());
+        if (family == null) {
+            return null;
+        }
+        Map<String, Object> familyMap = new HashMap<>();
+        familyMap.put("realName", family.getRealName());
+        familyMap.put("phone", family.getPhone());
+        return familyMap;
     }
 
     /**

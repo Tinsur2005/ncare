@@ -65,6 +65,8 @@
                   userInfoStore.setUserInfo(res.data.user)
                   userInfoStore.setUserType(res.data.userType)
                   userInfoStore.setElders(res.data.elders)
+                  // 老人登录时保存绑定的家属/监护人（家属登录时为null）
+                  userInfoStore.setFamily(res.data.family || null)
                   // 家属默认选中第一位绑定老人，老人登录则置空
                   userInfoStore.setCurrentElderId(
                       res.data.userType === 'family' && res.data.elders.length > 0 ? res.data.elders[0].id : null)

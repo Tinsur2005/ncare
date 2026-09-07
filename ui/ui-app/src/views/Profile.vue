@@ -41,22 +41,32 @@
   // 是否显示切换老人弹层
   const showElderPicker = ref(false)
 
-  // 我的页面菜单（家属端展示当前选中老人的信息和合同，老人端固定展示自己的；关于我们、备案信息两端共用）
+  // 我的页面菜单（家属端展示当前选中老人的信息和合同，老人端固定展示自己的；关于我们、备案信息两端共用，固定在最后两项）
   const menus = computed(() => {
     if (isFamily.value) {
       const name = currentElder.value.realName || '老人'
       return [
         {title: `${name}的信息`, icon: 'user-circle-o', path: '/elderInfo'},
         {title: `${name}的合同`, icon: 'bill-o', path: '/contract'},
-        {title: '关于我们', icon: 'info-o', path: '/about'},
-        {title: '备案信息', icon: 'shield-o', path: '/beian'}
+        {title: '体检预约', icon: 'calendar-o', path: '/examPackageList'},
+        {title: `${name}的体检记录`, icon: 'records', path: '/exam'},
+        {title: `${name}的护理任务`, icon: 'todo-list-o', path: '/careTask'},
+        {title: `${name}的护理计划`, icon: 'orders-o', path: '/carePlan'},
+        {title: `${name}的求助`, icon: 'warning-o', path: '/help'},
+        {title: '备案信息', icon: 'shield-o', path: '/beian'},
+        {title: '关于我们', icon: 'info-o', path: '/about'}
       ]
     }
     return [
       {title: '个人信息', icon: 'user-circle-o', path: '/elderInfo'},
       {title: '我的合同', icon: 'bill-o', path: '/contract'},
-      {title: '关于我们', icon: 'info-o', path: '/about'},
-      {title: '备案信息', icon: 'shield-o', path: '/beian'}
+      {title: '体检预约', icon: 'calendar-o', path: '/examPackageList'},
+      {title: '体检记录', icon: 'records', path: '/exam'},
+      {title: '护理任务', icon: 'todo-list-o', path: '/careTask'},
+      {title: '护理计划', icon: 'orders-o', path: '/carePlan'},
+      {title: '我的求助', icon: 'warning-o', path: '/help'},
+      {title: '备案信息', icon: 'shield-o', path: '/beian'},
+      {title: '关于我们', icon: 'info-o', path: '/about'}
     ]
   })
 
@@ -101,6 +111,7 @@
       userInfoStore.removeUserInfo()
       userInfoStore.removeUserType()
       userInfoStore.removeElders()
+      userInfoStore.removeFamily()
       userInfoStore.removeCurrentElderId()
       showToast('已退出登录')
       router.push('/login')
@@ -124,6 +135,13 @@
         <h3>{{ user.realName }}</h3>
         <p>{{ isFamily ? user.relation : '老人' }}</p>
       </div>
+    </div>
+
+    <!-- 老人端：绑定的家属/监护人卡片 -->
+    <div class="profile-card" v-if="!isFamily && userInfoStore.family">
+      <div class="family-card-title">家属 / 监护人</div>
+      <van-cell title="姓名" :value="userInfoStore.family.realName || '—'"/>
+      <van-cell title="联系电话" :value="userInfoStore.family.phone || '—'"/>
     </div>
 
     <!-- 家属：切换老人入口（底部抽屉选择） -->
@@ -240,6 +258,14 @@
     font-size: 18px;
     color: #666;
     margin-right: 10px;
+  }
+
+  /* 家属/监护人卡片标题 */
+  .family-card-title {
+    font-size: 15px;
+    font-weight: bold;
+    color: #323233;
+    padding: 16px 16px 4px;
   }
 
   /* 退出登录（红色描边胶囊按钮） */
