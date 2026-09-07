@@ -635,7 +635,7 @@
                 @change="judgeNumeric(row)"
                 style="width: 150px"
             />
-            <span class="result-unit">{{ row.resultUnit || row.referenceUnit || '' }}</span>
+            <span class="result-unit">{{ row.referenceUnit || '' }}</span>
             <el-tag v-if="row.status === 2" type="danger" size="small" style="margin-left: 5px">{{ judgeDirection(row) }}</el-tag>
           </template>
           <!-- 文本型：输入文本描述 -->

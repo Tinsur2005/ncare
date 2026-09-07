@@ -135,10 +135,10 @@
           </template>
           <van-tag type="warning" v-else>待检查</van-tag>
         </div>
-        <!-- 数值型结果：结果值 + 参考范围 -->
+        <!-- 数值型结果：结果值 + 参考范围（单位用参考单位，和右侧参考范围保持一致） -->
         <template v-if="row.resultType === 1">
           <p class="result-item-value">
-            {{ row.resultValue != null ? row.resultValue + (row.resultUnit || row.referenceUnit || '') : '未录入' }}
+            {{ row.resultValue != null ? row.resultValue + (row.referenceUnit || '') : '未录入' }}
             <span class="result-item-range" v-if="row.referenceMin != null && row.referenceMax != null">
               （参考范围 {{ row.referenceMin }} ~ {{ row.referenceMax }} {{ row.referenceUnit || '' }}）
             </span>
@@ -249,6 +249,7 @@
     margin-top: 8px;
     font-size: 13px;
     color: #666;
+    white-space: pre-wrap; /*保留后台录入体检结果时的换行*/
   }
 
   .result-item-range {
@@ -260,5 +261,6 @@
     margin-top: 4px;
     font-size: 12px;
     color: #EE9C01;
+    white-space: pre-wrap; /*医生建议同样保留换行*/
   }
 </style>
