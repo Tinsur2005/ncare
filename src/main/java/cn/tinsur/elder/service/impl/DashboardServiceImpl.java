@@ -18,16 +18,22 @@
  */
 package cn.tinsur.elder.service.impl;
 
+import cn.tinsur.elder.mapper.BedMapper;
+import cn.tinsur.elder.mapper.BuildingMapper;
 import cn.tinsur.elder.mapper.CareTaskMapper;
-import cn.tinsur.elder.mapper.ContractMapper;
 import cn.tinsur.elder.mapper.ElderMapper;
-import cn.tinsur.elder.mapper.ElderTagMapper;
-import cn.tinsur.elder.mapper.TagMapper;
-import cn.tinsur.elder.mapper.UserMapper;
+import cn.tinsur.elder.mapper.ExamAppointmentMapper;
+import cn.tinsur.elder.mapper.FloorMapper;
+import cn.tinsur.elder.mapper.HelpRequestMapper;
+import cn.tinsur.elder.mapper.RoomMapper;
+import cn.tinsur.elder.pojo.entity.Bed;
+import cn.tinsur.elder.pojo.entity.Building;
 import cn.tinsur.elder.pojo.entity.CareTask;
-import cn.tinsur.elder.pojo.entity.Contract;
-import cn.tinsur.elder.pojo.entity.ElderTag;
-import cn.tinsur.elder.pojo.entity.Tag;
+import cn.tinsur.elder.pojo.entity.Elder;
+import cn.tinsur.elder.pojo.entity.ExamAppointment;
+import cn.tinsur.elder.pojo.entity.Floor;
+import cn.tinsur.elder.pojo.entity.HelpRequest;
+import cn.tinsur.elder.pojo.entity.Room;
 import cn.tinsur.elder.pojo.vo.DashboardVO;
 import cn.tinsur.elder.pojo.vo.NameValueVO;
 import cn.tinsur.elder.pojo.vo.WeekTaskVO;
@@ -44,6 +50,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -62,19 +69,25 @@ public class DashboardServiceImpl implements IDashboardService {
     private ElderMapper elderMapper;
 
     @Autowired
-    private UserMapper userMapper;
+    private HelpRequestMapper helpRequestMapper;
 
     @Autowired
-    private ContractMapper contractMapper;
+    private ExamAppointmentMapper examAppointmentMapper;
 
     @Autowired
     private CareTaskMapper careTaskMapper;
 
     @Autowired
-    private ElderTagMapper elderTagMapper;
+    private BuildingMapper buildingMapper;
 
     @Autowired
-    private TagMapper tagMapper;
+    private FloorMapper floorMapper;
+
+    @Autowired
+    private RoomMapper roomMapper;
+
+    @Autowired
+    private BedMapper bedMapper;
 
     /**
      * 获取首页看板数据（统计卡片数字 + 各图表数据）
@@ -85,10 +98,15 @@ public class DashboardServiceImpl implements IDashboardService {
     public DashboardVO getDashboard() {
         DashboardVO vo = new DashboardVO();
 
-        // 1.统计卡片：老人总数、合同总数、用户总数（逻辑删除的记录会自动被排除）
-        vo.setElderCount(elderMapper.selectCount(null));
-        vo.setContractCount(contractMapper.selectCount(null));
-        vo.setUserCount(userMapper.selectCount(null));
+        // 1.统计卡片：在住老人（状态正常）、待处理求助、今日体检人次（逻辑删除的记录会自动被排除）
+        vo.setCheckedInElderCount(elderMapper.selectCount(
+                new LambdaQueryWrapper<Elder>().eq(Elder::getStatus, 1)));
+        vo.setPendingHelpCount(helpRequestMapper.selectCount(
+                new LambdaQueryWrapper<HelpRequest>().eq(HelpRequest::getStatus, 0)));
+        vo.setTodayExamCount(examAppointmentMapper.selectCount(
+                new LambdaQueryWrapper<ExamAppointment>()
+                        .between(ExamAppointment::getAppointmentDate, todayBegin(), weekEnd())
+                        .ne(ExamAppointment::getStatus, 3)));
 
         // 2.一次查出近7天（含今天）的护理任务，后面"近7天柱状图"和"今日状态饼图"都从这份列表里统计，避免重复查库
         List<CareTask> weekTasks = listWeekTasks();
@@ -105,13 +123,41 @@ public class DashboardServiceImpl implements IDashboardService {
                 .map(NameValueVO::getValue)
                 .orElse(0L));
 
-        // 5.合同类型分布（饼图）
-        vo.setContractTypeList(buildContractTypeList());
+        // 5.近7天体检预约人次（折线图）
+        vo.setWeekExamList(buildWeekExamList());
 
-        // 6.老人标签分布（条形图）
-        vo.setElderTagList(buildElderTagList());
+        // 6.各楼栋入住比例（饼图）
+        vo.setBuildingOccupancyList(buildBuildingOccupancyList());
 
         return vo;
+    }
+
+    /**
+     * 获取今天零点的时间
+     *
+     * @return 今天 00:00:00
+     */
+    private Date todayBegin() {
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTime();
+    }
+
+    /**
+     * 获取近7天（含今天）的终点：今天 23:59:59
+     *
+     * @return 今天 23:59:59
+     */
+    private Date weekEnd() {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(todayBegin());
+        calendar.set(Calendar.HOUR_OF_DAY, 23);
+        calendar.set(Calendar.MINUTE, 59);
+        calendar.set(Calendar.SECOND, 59);
+        return calendar.getTime();
     }
 
     /**
@@ -120,24 +166,14 @@ public class DashboardServiceImpl implements IDashboardService {
      * @return 近7天的护理任务
      */
     private List<CareTask> listWeekTasks() {
-        // 今天零点
+        // 今天零点往前推6天得到近7天的起点（计划执行日期 >= 起点），终点为今天 23:59:59
         Calendar calendar = Calendar.getInstance();
-        calendar.set(Calendar.HOUR_OF_DAY, 0);
-        calendar.set(Calendar.MINUTE, 0);
-        calendar.set(Calendar.SECOND, 0);
-        calendar.set(Calendar.MILLISECOND, 0);
-        // 往前推6天得到近7天的起点（计划执行日期 >= 起点）
+        calendar.setTime(todayBegin());
         calendar.add(Calendar.DAY_OF_MONTH, -6);
         Date beginDate = calendar.getTime();
-        // 今天 23:59:59 作为终点（计划执行日期 <= 终点）
-        calendar.add(Calendar.DAY_OF_MONTH, 6);
-        calendar.set(Calendar.HOUR_OF_DAY, 23);
-        calendar.set(Calendar.MINUTE, 59);
-        calendar.set(Calendar.SECOND, 59);
-        Date endDate = calendar.getTime();
 
         LambdaQueryWrapper<CareTask> lambdaQueryWrapper = new LambdaQueryWrapper<>();
-        lambdaQueryWrapper.between(CareTask::getPlanExecuteDate, beginDate, endDate);
+        lambdaQueryWrapper.between(CareTask::getPlanExecuteDate, beginDate, weekEnd());
         return careTaskMapper.selectList(lambdaQueryWrapper);
     }
 
@@ -197,48 +233,69 @@ public class DashboardServiceImpl implements IDashboardService {
     }
 
     /**
-     * 统计合同类型分布（饼图数据：服务合同/入住合同/其他）
+     * 统计近7天（含今天）每天的体检预约人次（折线图数据：体检日期在当天的预约记录数，不含已取消的预约）
+     * 没有预约数据的日期也补0，保证折线图x轴连续7天
      *
-     * @return 饼图数据
+     * @return 一天一条的统计数据（按时间从早到今天排序）
      */
-    private List<NameValueVO> buildContractTypeList() {
-        // 按合同类型分组计数
-        Map<Integer, Long> typeCountMap = contractMapper.selectList(null).stream()
-                .filter(contract -> contract.getContractType() != null)
-                .collect(Collectors.groupingBy(Contract::getContractType, Collectors.counting()));
+    private List<NameValueVO> buildWeekExamList() {
+        // 近7天（含今天）的体检预约，排除已取消的
+        LambdaQueryWrapper<ExamAppointment> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(todayBegin());
+        calendar.add(Calendar.DAY_OF_MONTH, -6);
+        lambdaQueryWrapper.between(ExamAppointment::getAppointmentDate, calendar.getTime(), weekEnd())
+                .ne(ExamAppointment::getStatus, 3);
+        // 按"yyyy-MM-dd"分组计数，key是日期字符串
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        Map<String, Long> dateCountMap = examAppointmentMapper.selectList(lambdaQueryWrapper).stream()
+                .filter(appointment -> appointment.getAppointmentDate() != null)
+                .collect(Collectors.groupingBy(appointment -> dateFormat.format(appointment.getAppointmentDate()), Collectors.counting()));
 
-        // 类型编码转名称的映射，与合同页面保持一致；没有数据的类型也补0
-        int[] types = {0, 1, 2};
-        String[] names = {"服务合同", "入住合同", "其他"};
+        // 从6天前开始逐天构建，保证x轴顺序是"最早 -> 今天"
+        SimpleDateFormat labelFormat = new SimpleDateFormat("MM-dd");
+        calendar.setTime(todayBegin());
+        calendar.add(Calendar.DAY_OF_MONTH, -6);
         List<NameValueVO> list = new ArrayList<>();
-        for (int i = 0; i < types.length; i++) {
-            list.add(new NameValueVO(names[i], typeCountMap.getOrDefault(types[i], 0L)));
+        for (int i = 0; i < 7; i++) {
+            list.add(new NameValueVO(labelFormat.format(calendar.getTime()),
+                    dateCountMap.getOrDefault(dateFormat.format(calendar.getTime()), 0L)));
+            calendar.add(Calendar.DAY_OF_MONTH, 1);
         }
         return list;
     }
 
     /**
-     * 统计老人标签分布（条形图数据：每个标签下打标老人的数量）
+     * 统计各楼栋入住比例（饼图数据：每个楼栋占用床位的数量，即楼栋的在住人数）
+     * 床位到楼栋的链路：床位的roomId -> 房间的floorId -> 楼层的buildingId
      *
-     * @return 条形图数据（按数量从大到小排序）
+     * @return 饼图数据（楼栋按sort排序）
      */
-    private List<NameValueVO> buildElderTagList() {
-        // 1.老人-标签关联全部查出，按标签id分组计数
-        Map<Long, Long> tagCountMap = elderTagMapper.selectList(null).stream()
-                .filter(elderTag -> elderTag.getTagId() != null)
-                .collect(Collectors.groupingBy(ElderTag::getTagId, Collectors.counting()));
-        if (tagCountMap.isEmpty()) return new ArrayList<>();
+    private List<NameValueVO> buildBuildingOccupancyList() {
+        // 1.楼栋、楼层、房间各查一次，在内存里建id到对象的映射
+        Map<Long, Building> buildingMap = buildingMapper.selectList(null).stream()
+                .collect(Collectors.toMap(Building::getId, building -> building));
+        Map<Long, Floor> floorMap = floorMapper.selectList(null).stream()
+                .collect(Collectors.toMap(Floor::getId, floor -> floor));
+        Map<Long, Room> roomMap = roomMapper.selectList(null).stream()
+                .collect(Collectors.toMap(Room::getId, room -> room));
 
-        // 2.一次查出涉及的标签组装成 Map<Long, String> 回填标签名称（和护理任务页fillNames同一思路）
-        Map<Long, String> tagNameMap = tagMapper.selectBatchIds(tagCountMap.keySet()).stream()
-                .collect(Collectors.toMap(Tag::getId, Tag::getName));
+        // 2.统计每个楼栋占用床位（状态为已占用）的数量
+        Map<Long, Long> occupancyCountMap = bedMapper.selectList(null).stream()
+                .filter(bed -> Integer.valueOf(1).equals(bed.getStatus()))
+                .map(bed -> roomMap.get(bed.getRoomId()))
+                .filter(Objects::nonNull)
+                .map(room -> floorMap.get(room.getFloorId()))
+                .filter(Objects::nonNull)
+                .map(Floor::getBuildingId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.groupingBy(buildingId -> buildingId, Collectors.counting()));
 
-        // 3.组装成图表数据
-        List<NameValueVO> list = new ArrayList<>();
-        tagCountMap.forEach((tagId, count) -> list.add(new NameValueVO(tagNameMap.getOrDefault(tagId, "未知标签"), count)));
-        // 按数量从大到小排序，条形图更直观
-        list.sort(Comparator.comparingLong(NameValueVO::getValue).reversed());
-        return list;
+        // 3.按楼栋组装图表数据，没有在住老人的楼栋也补0
+        return buildingMap.values().stream()
+                .sorted(Comparator.comparing(Building::getSort, Comparator.nullsLast(Comparator.naturalOrder())))
+                .map(building -> new NameValueVO(building.getName(), occupancyCountMap.getOrDefault(building.getId(), 0L)))
+                .toList();
     }
 
     /**

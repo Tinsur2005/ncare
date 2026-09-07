@@ -21,7 +21,7 @@
   import EChart from '@/components/EChart.vue'
   import {ref} from 'vue'
   import {useUserInfoStore} from '@/store/userInfo.js'
-  import {Timer, User, Document, CollectionTag, UserFilled} from '@element-plus/icons-vue'
+  import {Timer, Bell, Calendar, CollectionTag, UserFilled} from '@element-plus/icons-vue'
 
   const userInfoStore = useUserInfoStore()
 
@@ -31,8 +31,8 @@
   //各图表的echarts配置项，异步拿到数据后由构建方法生成
   const weekTaskOption = ref({})
   const todayTaskStatusOption = ref({})
-  const contractTypeOption = ref({})
-  const elderTagOption = ref({})
+  const weekExamOption = ref({})
+  const buildingOccupancyOption = ref({})
 
   const loadDashboard = () => {
     dashboardApi.getDashboard().then(result => {
@@ -40,8 +40,8 @@
       //根据后端数据生成各图表的配置项
       weekTaskOption.value = buildWeekTaskOption(result.data.weekTaskList || [])
       todayTaskStatusOption.value = buildPieOption('今日任务状态', result.data.todayTaskStatusList || [])
-      contractTypeOption.value = buildPieOption('合同类型', result.data.contractTypeList || [])
-      elderTagOption.value = buildElderTagOption(result.data.elderTagList || [])
+      weekExamOption.value = buildWeekExamOption(result.data.weekExamList || [])
+      buildingOccupancyOption.value = buildPieOption('楼栋入住', result.data.buildingOccupancyList || [])
     })
   }
   loadDashboard()
@@ -64,7 +64,7 @@
     }
   }
 
-  //通用饼图配置：今日任务状态、合同类型两个饼图共用这一个构建方法，避免重复代码
+  //通用饼图配置：今日任务状态、各楼栋入住比例两个饼图共用这一个构建方法，避免重复代码
   const buildPieOption = (seriesName, nameValueList) => {
     return {
       tooltip: {trigger: 'item', formatter: '{b}：{c}（{d}%）'},
@@ -82,15 +82,15 @@
     }
   }
 
-  //老人标签条形图配置：横向柱状，按数量从大到小排列（后端已排好序）
-  const buildElderTagOption = (elderTagList) => {
+  //近7天体检预约人次折线图配置：每天的预约人次一条平滑连线
+  const buildWeekExamOption = (weekExamList) => {
     return {
-      tooltip: {trigger: 'axis', axisPointer: {type: 'shadow'}},
-      grid: {left: 80, right: 30, top: 20, bottom: 30},
-      xAxis: {type: 'value', minInterval: 1},
-      yAxis: {type: 'category', data: elderTagList.map(item => item.name)},
+      tooltip: {trigger: 'axis'},
+      grid: {left: 40, right: 20, top: 30, bottom: 30},
+      xAxis: {type: 'category', boundaryGap: false, data: weekExamList.map(item => item.name)},
+      yAxis: {type: 'value', minInterval: 1},
       series: [
-        {name: '老人数量', type: 'bar', data: elderTagList.map(item => item.value), itemStyle: {color: '#409EFF'}, barMaxWidth: 24}
+        {name: '体检预约人次', type: 'line', smooth: true, data: weekExamList.map(item => item.value), itemStyle: {color: '#409EFF'}, areaStyle: {opacity: 0.15}}
       ]
     }
   }
@@ -137,9 +137,9 @@
     <!-- ② 统计卡片 -->
     <el-row :gutter="16" class="stat-row">
       <el-col :xs="12" :sm="12" :md="6" v-for="(item, i) in [
-        {label: '老人总数',       value: dashboard.elderCount ?? 0,          icon: UserFilled,   color: '#409EFF'},
-        {label: '合同总数',       value: dashboard.contractCount ?? 0,       icon: Document,     color: '#67C23A'},
-        {label: '用户总数',       value: dashboard.userCount ?? 0,           icon: User,         color: '#E6A23C'},
+        {label: '在住老人',       value: dashboard.checkedInElderCount ?? 0,   icon: UserFilled,    color: '#409EFF'},
+        {label: '待处理求助',     value: dashboard.pendingHelpCount ?? 0,      icon: Bell,          color: '#67C23A'},
+        {label: '今日体检人次',   value: dashboard.todayExamCount ?? 0,        icon: Calendar,      color: '#E6A23C'},
         {label: '今日待执行任务', value: dashboard.todayPendingTaskCount ?? 0, icon: CollectionTag, color: '#F56C6C'},
       ]" :key="i">
         <el-card class="stat-card" shadow="hover">
@@ -180,26 +180,26 @@
       </el-col>
     </el-row>
 
-    <!-- ④ 数据图表：合同与标签两张图 -->
+    <!-- ④ 数据图表：楼栋入住与体检预约两张图 -->
     <el-row :gutter="16">
       <el-col :xs="24" :md="10">
         <el-card class="panel" shadow="never">
           <template #header>
             <div class="panel-header">
-              <span>合同类型分布</span>
+              <span>各楼栋入住比例</span>
             </div>
           </template>
-          <EChart :option="contractTypeOption" height="300px"/>
+          <EChart :option="buildingOccupancyOption" height="300px"/>
         </el-card>
       </el-col>
       <el-col :xs="24" :md="14">
         <el-card class="panel" shadow="never">
           <template #header>
             <div class="panel-header">
-              <span>老人标签分布</span>
+              <span>近7天体检预约人次</span>
             </div>
           </template>
-          <EChart :option="elderTagOption" height="300px"/>
+          <EChart :option="weekExamOption" height="300px"/>
         </el-card>
       </el-col>
     </el-row>

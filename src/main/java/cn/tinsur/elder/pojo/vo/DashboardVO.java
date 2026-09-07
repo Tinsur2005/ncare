@@ -32,19 +32,19 @@ import java.util.List;
 public class DashboardVO {
 
     /**
-     * 老人总数
+     * 在住老人数量（状态为正常的老人，即已完成入住、占用床位的老人）
      */
-    private Long elderCount;
+    private Long checkedInElderCount;
 
     /**
-     * 合同总数
+     * 待处理求助数量（状态为未处理的求助记录数）
      */
-    private Long contractCount;
+    private Long pendingHelpCount;
 
     /**
-     * 用户总数
+     * 今日体检人次（体检日期为今天的预约记录数，不含已取消的预约）
      */
-    private Long userCount;
+    private Long todayExamCount;
 
     /**
      * 今日待执行任务数
@@ -62,12 +62,12 @@ public class DashboardVO {
     private List<WeekTaskVO> weekTaskList;
 
     /**
-     * 合同类型分布（饼图：服务合同/入住合同/其他）
+     * 近7天体检预约人次（折线图：体检日期在当天的预约记录数）
      */
-    private List<NameValueVO> contractTypeList;
+    private List<NameValueVO> weekExamList;
 
     /**
-     * 老人标签分布（条形图：每个标签下打标老人的数量）
+     * 各楼栋入住比例（饼图：每个楼栋占用床位的数量）
      */
-    private List<NameValueVO> elderTagList;
+    private List<NameValueVO> buildingOccupancyList;
 }
