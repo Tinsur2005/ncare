@@ -28,6 +28,7 @@ import cn.tinsur.elder.service.IElderService;
 import cn.tinsur.elder.service.IFamilyService;
 import cn.tinsur.elder.util.AppAuthHelper;
 import cn.tinsur.elder.util.JwtUtil;
+import cn.tinsur.elder.util.PasswordUtil;
 import cn.tinsur.elder.util.Result;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,7 +78,7 @@ public class AppUserController {
             if (dbFamily == null) {
                 return Result.error("用户名不存在");
             }
-            if (!dbFamily.getPassword().equals(appLoginDTO.getPassword())) {
+            if (!PasswordUtil.matches(appLoginDTO.getPassword(), dbFamily.getPassword())) {
                 return Result.error("密码错误");
             }
             //账号密码正确时，判断用户状态
@@ -97,7 +98,7 @@ public class AppUserController {
         if (dbElder == null) {
             return Result.error("用户名不存在");
         }
-        if (!dbElder.getPassword().equals(appLoginDTO.getPassword())) {
+        if (!PasswordUtil.matches(appLoginDTO.getPassword(), dbElder.getPassword())) {
             return Result.error("密码错误");
         }
         //账号密码正确时，判断用户状态

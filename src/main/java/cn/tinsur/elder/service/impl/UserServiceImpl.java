@@ -35,6 +35,7 @@ import cn.tinsur.elder.pojo.vo.UserVO;
 import cn.tinsur.elder.service.IPermissionService;
 import cn.tinsur.elder.service.IUserService;
 import cn.tinsur.elder.util.ExcelUtil;
+import cn.tinsur.elder.util.PasswordUtil;
 import cn.tinsur.elder.util.Result;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.exception.ExcelDataConvertException;
@@ -204,6 +205,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if(isExists(user.getName())) {
             throw new ServiceException("用户名已存在，换一个用户名试试吧");
         }
+        user.setPassword(PasswordUtil.hash(user.getPassword()));
         userMapper.insert(user);
         return Result.ok("新增成功");
     }

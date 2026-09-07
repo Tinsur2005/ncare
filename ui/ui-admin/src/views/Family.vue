@@ -19,7 +19,7 @@
 <script setup>
   import familyApi from '@/api/family.js'
   import elderApi from '@/api/elder.js'
-  import {nextTick, ref} from 'vue'
+  import {computed, nextTick, ref} from 'vue'
   import {useRouter} from 'vue-router'
   import {ElMessage, ElMessageBox} from 'element-plus'
   import {Plus, Delete, EditPen, View, Document} from '@element-plus/icons-vue'
@@ -263,6 +263,8 @@
     })
     familyApi.selectById(id).then(result => {
       family.value = result.data
+      //密码框不回显哈希值，留空表示不修改密码
+      family.value.password = ''
     })
   }
 
@@ -273,11 +275,7 @@
         .then(() => {
           //校验通过，执行新增/编辑接口
           if (family.value.id) {
-            // 编辑：密码留空则传null，MyBatis-Plus不会更新该列，避免把原密码清空
-            if (!family.value.password) {
-              family.value.password = null
-            }
-            // 编辑
+            // 编辑：密码留空由后端跳过更新，填了由后端BCrypt加密
             familyApi.update(family.value.id, family.value).then(result => {
               if (result.code === 1) {
                 // 保存关联的老人（允许清空全部关联）
@@ -343,28 +341,30 @@
     return true
   }
 
-  //对话框dialog输入规则校验
-  const dialogRules = {
-    name: [
-      {required: true, message: '请输入用户名', trigger: 'blur'},
-      {min: 2, max: 16, message: '长度在 2 到 16 个字符', trigger: 'blur'}
-    ],
-    password: [
-      {required: true, message: '请输入密码', trigger: 'blur'},
-      {min: 6, max: 16, message: '长度在 6 到 16 个字符', trigger: 'blur'}
-    ],
-    status: [
-      {required: true, message: '请选择状态', trigger: 'blur'}
-    ],
-    phone: [
-      {required: true, message: '请输入手机号', trigger: 'blur'},
-      {min: 11, max: 11, message: '手机号格式错误', trigger: 'blur'}
-    ],
-    realName: [
-      {required: true, message: '请输入姓名', trigger: 'blur'},
-      {min: 2, max: 16, message: '长度在 2 到 16 个字符', trigger: 'blur'}
-    ],
-  }
+  //对话框dialog输入规则校验（编辑时密码不是必填，留空表示不修改密码）
+  const dialogRules = computed(() => {
+    return {
+      name: [
+        {required: true, message: '请输入用户名', trigger: 'blur'},
+        {min: 2, max: 16, message: '长度在 2 到 16 个字符', trigger: 'blur'}
+      ],
+      password: [
+        {required: !family.value.id, message: '请输入密码', trigger: 'blur'},
+        {min: 6, max: 16, message: '长度在 6 到 16 个字符', trigger: 'blur'}
+      ],
+      status: [
+        {required: true, message: '请选择状态', trigger: 'blur'}
+      ],
+      phone: [
+        {required: true, message: '请输入手机号', trigger: 'blur'},
+        {min: 11, max: 11, message: '手机号格式错误', trigger: 'blur'}
+      ],
+      realName: [
+        {required: true, message: '请输入姓名', trigger: 'blur'},
+        {min: 2, max: 16, message: '长度在 2 到 16 个字符', trigger: 'blur'}
+      ],
+    }
+  })
 </script>
 
 <template>
@@ -484,7 +484,8 @@
         <el-input v-model="family.name" autocomplete="off" :disabled="!!family.id"/>
       </el-form-item>
       <el-form-item prop="password" label="密码" :label-width="80">
-        <el-input v-model="family.password" autocomplete="off" show-password type="password"/>
+        <el-input v-model="family.password" autocomplete="off" show-password type="password"
+                  :placeholder="family.id ? '不输入即为不修改密码' : '请输入密码'"/>
       </el-form-item>
       <el-form-item prop="realName" label="姓名" :label-width="80">
         <el-input v-model="family.realName" autocomplete="off"/>

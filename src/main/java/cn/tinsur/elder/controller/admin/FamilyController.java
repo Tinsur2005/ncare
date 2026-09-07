@@ -25,6 +25,7 @@ import cn.tinsur.elder.pojo.entity.Family;
 import cn.tinsur.elder.pojo.query.FamilyQuery;
 import cn.tinsur.elder.pojo.vo.FamilyVO;
 import cn.tinsur.elder.service.IFamilyService;
+import cn.tinsur.elder.util.PasswordUtil;
 import cn.tinsur.elder.util.Result;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -78,6 +79,7 @@ public class FamilyController {
         if(isExists(family.getName())) {
             return Result.error("已有同名家属存在，请修改用户名后重试");
         }
+        family.setPassword(PasswordUtil.hash(family.getPassword()));
         familyService.save(family);
         // save后MyBatis-Plus会把自增id回填到family对象中，返回给前端供新增后直接绑定老人
         return Result.ok("新增成功", family.getId());
@@ -90,6 +92,12 @@ public class FamilyController {
      */
     @PutMapping("/{id}")
     public Result update(@PathVariable Long id, @RequestBody Family family) {
+        //密码留空表示不修改，置null让MyBatis-Plus跳过该列；填了则BCrypt加密后再更新
+        if (family.getPassword() == null || family.getPassword().isEmpty()) {
+            family.setPassword(null);
+        } else {
+            family.setPassword(PasswordUtil.hash(family.getPassword()));
+        }
         family.setId(id);
         familyService.updateById(family);
         return Result.ok("修改成功");

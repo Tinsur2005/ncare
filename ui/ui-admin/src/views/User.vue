@@ -18,7 +18,7 @@
 -->
 <script setup>
   import userApi from '@/api/user.js'
-  import {nextTick, ref} from 'vue'
+  import {computed, nextTick, ref} from 'vue'
   import {ElMessage, ElMessageBox} from 'element-plus'
   import {
     Delete,
@@ -178,6 +178,8 @@
     })
     userApi.selectById(id).then(result => {
       user.value = result.data
+      //密码框不回显哈希值，留空表示不修改密码
+      user.value.password = ''
     })
   }
 
@@ -215,26 +217,28 @@
         })
   }
 
-  //对话框dialog输入规则校验
-  const dialogRules = {
-    name: [
-      {required: true, message: '请输入用户名', trigger: 'blur'},
-      {min: 2, max: 16, message: '长度在 2 到 16 个字符', trigger: 'blur'}
-    ],
-    password: [
-      {required: true, message: '请输入密码', trigger: 'blur'},
-      {min: 6, max: 16, message: '长度在 6 到 16 个字符', trigger: 'blur'}
-    ],
-    realName: [
-      {required: true, message: '请输入姓名', trigger: 'blur'}
-    ],
-    email: [
-      {type: 'email', message: '邮箱格式错误', trigger: 'blur'}
-    ],
-    phone: [
-      {min: 11, max: 11, message: '手机号格式错误', trigger: 'blur'}
-    ]
-  }
+  //对话框dialog输入规则校验（编辑时密码不是必填，留空表示不修改密码）
+  const dialogRules = computed(() => {
+    return {
+      name: [
+        {required: true, message: '请输入用户名', trigger: 'blur'},
+        {min: 2, max: 16, message: '长度在 2 到 16 个字符', trigger: 'blur'}
+      ],
+      password: [
+        {required: !user.value.id, message: '请输入密码', trigger: 'blur'},
+        {min: 6, max: 16, message: '长度在 6 到 16 个字符', trigger: 'blur'}
+      ],
+      realName: [
+        {required: true, message: '请输入姓名', trigger: 'blur'}
+      ],
+      email: [
+        {type: 'email', message: '邮箱格式错误', trigger: 'blur'}
+      ],
+      phone: [
+        {min: 11, max: 11, message: '手机号格式错误', trigger: 'blur'}
+      ]
+    }
+  })
 
   //上传图片
   const handleAvatarSuccess = (result) => {
@@ -458,7 +462,8 @@
         <el-input v-model="user.name" autocomplete="off" :disabled="user.id"/>
       </el-form-item>
       <el-form-item prop="password" label="密码" :label-width="80">
-        <el-input v-model="user.password" autocomplete="off" show-password="true" type="password"/>
+        <el-input v-model="user.password" autocomplete="off" show-password="true" type="password"
+                  :placeholder="user.id ? '不输入即为不修改密码' : '请输入密码'"/>
       </el-form-item>
       <el-form-item prop="realName" label="姓名" :label-width="80">
         <el-input v-model="user.realName" autocomplete="off"/>

@@ -29,6 +29,7 @@ import cn.tinsur.elder.pojo.vo.UserVO;
 import cn.tinsur.elder.service.IEmailCodeService;
 import cn.tinsur.elder.service.IUserService;
 import cn.tinsur.elder.util.JwtUtil;
+import cn.tinsur.elder.util.PasswordUtil;
 import cn.tinsur.elder.util.Result;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -71,8 +72,8 @@ public class UserController {
         if(dbUser == null) {
             return Result.error("用户名不存在");
         }
-        if(!dbUser.getPassword().equals(user.getPassword())) {
-            return Result.error("密码错误");
+        if(!PasswordUtil.matches(user.getPassword(), dbUser.getPassword())) {
+            return Result.error("密码错误，请重新输入");
         }
         //账号密码正确时，判断用户状态
         if (dbUser.getStatus() == 0) {
@@ -120,6 +121,12 @@ public class UserController {
      */
     @PutMapping("/{id}")
     public Result update(@PathVariable Long id, @RequestBody User user) {
+        //密码留空表示不修改，置null让MyBatis-Plus跳过该列；填了则BCrypt加密后再更新
+        if (user.getPassword() == null || user.getPassword().isEmpty()) {
+            user.setPassword(null);
+        } else {
+            user.setPassword(PasswordUtil.hash(user.getPassword()));
+        }
         user.setId(id);
         userService.updateById(user);
         return Result.ok("修改成功");
@@ -175,15 +182,16 @@ public class UserController {
         Map<String, Object> map = JwtUtil.parseToken(Authorization);
         Integer id = (Integer) map.get("id");
         User user = userService.getById(id);
-        if (!user.getPassword().equals(userPasswordDTO.getOldPassword())){
+        //库中是BCrypt哈希，旧密码要用matches比对，不能用equals
+        if (!PasswordUtil.matches(userPasswordDTO.getOldPassword(), user.getPassword())) {
             return Result.error("原密码错误");
         }
-        if (user.getPassword().equals(userPasswordDTO.getNewPassword())) {
+        if (PasswordUtil.matches(userPasswordDTO.getNewPassword(), user.getPassword())) {
             return Result.error("新密码不能与原密码相同");
         }
         User updateUser = new User();
         updateUser.setId(user.getId());
-        updateUser.setPassword(userPasswordDTO.getNewPassword());
+        updateUser.setPassword(PasswordUtil.hash(userPasswordDTO.getNewPassword()));
         userService.updateById(updateUser);
         return Result.ok("密码重置成功");
     }
@@ -206,14 +214,14 @@ public class UserController {
         if (verifyResult.getCode() != Result.OK) {
             return verifyResult;
         }
-        // 2.校验新密码与原密码不同，与原重置密码接口保持一致
-        if (user.getPassword().equals(emailPasswordDTO.getNewPassword())) {
+        // 2.校验新密码与原密码不同，与原重置密码接口保持一致（库中是哈希，用matches比对）
+        if (PasswordUtil.matches(emailPasswordDTO.getNewPassword(), user.getPassword())) {
             return Result.error("新密码不能与原密码相同");
         }
-        // 3.更新密码
+        // 3.更新密码（BCrypt加密后入库）
         User updateUser = new User();
         updateUser.setId(user.getId());
-        updateUser.setPassword(emailPasswordDTO.getNewPassword());
+        updateUser.setPassword(PasswordUtil.hash(emailPasswordDTO.getNewPassword()));
         userService.updateById(updateUser);
         return Result.ok("密码修改成功，请重新登录");
     }
