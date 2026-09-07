@@ -43,6 +43,7 @@ import NewsDetail from '@/views/NewsDetail.vue'
 import HelpList from '@/views/HelpList.vue'
 import HelpSubmit from '@/views/HelpSubmit.vue'
 import About from '@/views/About.vue'
+import Beian from '@/views/Beian.vue'
 
 //创建路由器
 const router = createRouter({
@@ -74,7 +75,8 @@ const router = createRouter({
                 {path: '/newsDetail', component: NewsDetail},
                 {path: '/help', component: HelpList},
                 {path: '/helpSubmit', component: HelpSubmit},
-                {path: '/about', component: About}
+                {path: '/about', component: About},
+                {path: '/beian', component: Beian}
             ]
         }
     ]

@@ -54,9 +54,6 @@
     limit: 10
   })
 
-  //创建时间范围，用于模糊搜索用，初始化置为空，在日期选择框选择后被赋值
-  const createTimeRange = ref([])
-
   //添加、编辑对话框标题
   const title = ref()
   //添加、编辑对话框的弹出控制
@@ -66,9 +63,6 @@
 
   //加载数据
   const loadData = () => {
-    floorQuery.value.beginCreateTime = createTimeRange.value?.[0]
-    floorQuery.value.endCreateTime = createTimeRange.value?.[1]
-
     floorApi.list(floorQuery.value).then(result => {
       list.value = result.data.records
       total.value = result.data.total
@@ -89,7 +83,6 @@
       page: 1,
       limit: 10
     }
-    createTimeRange.value = []
     loadData()
   }
 
@@ -238,16 +231,6 @@
               :value="item.id"
           />
         </el-select>
-      </el-form-item>
-      <el-form-item label="创建时间">
-        <el-date-picker
-            v-model="createTimeRange"
-            type="daterange"
-            value-format="YYYY-MM-DD HH:mm:ss"
-            range-separator="至"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-        />
       </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="onSearch">搜索</el-button>

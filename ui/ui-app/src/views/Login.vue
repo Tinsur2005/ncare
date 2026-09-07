@@ -140,6 +140,12 @@
         <p>后端管理页面演示请点击：<a href="https://ncare.tinsur.cn/admin">管理后台</a></p>
       </div>
     </div>
+
+    <!-- 底部备案信息 -->
+    <div class="beian-footer">
+      <a href="https://beian.miit.gov.cn/" target="_blank" rel="nofollow">鲁ICP备2023032291号-1</a>
+      <a href="https://beian.mps.gov.cn/#/query/webSearch?code=37021402000083" target="_blank" rel="noreferrer">鲁公网安备37021402000083号</a>
+    </div>
   </div>
 </template>
 
@@ -291,5 +297,26 @@
     font-size: 12px;
     color: #999;
     line-height: 20px;
+  }
+
+  /* 底部备案信息：小号浅灰字，弱化存在感 */
+  .beian-footer {
+    position: absolute;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    font-size: 11px;
+  }
+
+  .beian-footer a {
+    color: #C0C4CC;
+    text-decoration: none;
+  }
+
+  .beian-footer a:active {
+    color: #909399;
   }
 </style>

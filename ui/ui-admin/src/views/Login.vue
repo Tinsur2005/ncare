@@ -137,6 +137,12 @@
         </div>
       </div>
     </div>
+
+    <!-- 底部备案信息 -->
+    <div class="beian-footer">
+      <a href="https://beian.miit.gov.cn/" target="_blank" rel="nofollow">鲁ICP备2023032291号-1</a>
+      <a href="https://beian.mps.gov.cn/#/query/webSearch?code=37021402000083" target="_blank" rel="noreferrer">鲁公网安备37021402000083号</a>
+    </div>
   </div>
 
 </template>
@@ -362,6 +368,27 @@
   .demo-tips a {
     color: #409eff;
     text-decoration: none;
+  }
+
+  /* 底部备案信息：小号浅灰字，弱化存在感 */
+  .beian-footer {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    font-size: 12px;
+  }
+
+  .beian-footer a {
+    color: #A8ABB2;
+    text-decoration: none;
+  }
+
+  .beian-footer a:hover {
+    color: #909399;
   }
 
   /* 窄屏时隐藏左侧品牌区，只保留登录表单 */

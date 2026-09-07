@@ -499,7 +499,13 @@
         <router-view></router-view>
       </el-main>
       <!-- 底部区域 -->
-      <el-footer>Copyright©2020-2026 Tinsur All rights reserved</el-footer>
+      <el-footer>
+        <span>Copyright © 2026 Tinsur All rights reserved</span>
+        <a class="beian-link" href="https://beian.miit.gov.cn/" target="_blank" rel="nofollow">鲁ICP备2023032291号-1</a>
+        <a class="beian-link" href="https://beian.mps.gov.cn/#/query/webSearch?code=37021402000083" target="_blank" rel="noreferrer">
+          <img src="//www.tinsur.cn/beian.png" alt="公安备案" class="beian-ico"/>鲁公网安备37021402000083号
+        </a>
+      </el-footer>
     </el-container>
   </el-container>
 
@@ -730,11 +736,28 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 20px;
       font-size: 14px;
       color: #909399;
       background-color: #fff;
       height: 44px;
       border-top: 1px solid #f0f0f0;
+
+      .beian-link {
+        color: #909399;
+        text-decoration: none;
+
+        &:hover {
+          color: var(--el-color-primary);
+        }
+      }
+
+      .beian-ico {
+        width: 15px;
+        height: auto;
+        vertical-align: middle;
+        margin: 0 4px 2px 0;
+      }
     }
   }
 
