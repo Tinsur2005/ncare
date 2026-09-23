@@ -41,6 +41,7 @@ package cn.tinsur.elder.controller.admin.user;
 
 
 import cn.tinsur.elder.pojo.entity.Role;
+import cn.tinsur.elder.pojo.dto.UserLoginDTO;
 import cn.tinsur.elder.pojo.dto.UserPasswordDTO;
 import cn.tinsur.elder.pojo.dto.EmailCodeDTO;
 import cn.tinsur.elder.pojo.dto.EmailPasswordDTO;
@@ -54,11 +55,17 @@ import cn.tinsur.elder.util.PasswordUtil;
 import cn.tinsur.elder.util.Result;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.google.code.kaptcha.impl.DefaultKaptcha;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,19 +88,48 @@ public class UserController {
     @Autowired
     private IEmailCodeService emailCodeService;
 
+    @Autowired
+    private DefaultKaptcha defaultKaptcha;
+
     /**
-     * 登录
-     * @param user
+     * 生成登录图形验证码，验证码文本存进session等登录时比对
+     * GET /users/captcha
+     */
+    @GetMapping("/captcha")
+    public void captcha(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        //生成验证码文本并写入session（登录时取出比对，一次有效）
+        String code = defaultKaptcha.createText();
+        request.getSession().setAttribute("loginCode", code);
+        //禁止浏览器缓存，保证每次请求都拿到新图
+        response.setContentType("image/jpeg");
+        response.setHeader("Cache-Control", "no-store, no-cache");
+        response.setDateHeader("Expires", 0);
+        //把验证码图片写进响应流
+        BufferedImage image = defaultKaptcha.createImage(code);
+        ServletOutputStream outputStream = response.getOutputStream();
+        ImageIO.write(image, "jpg", outputStream);
+        outputStream.flush();
+    }
+
+    /**
+     * 登录（先校验图形验证码再校验账号密码）
+     * @param userLoginDTO 登录请求对象（用户名+密码+验证码）
      * @return Result<String>
      */
     @PostMapping("/login")
-    public Result<String> login(@RequestBody User user) {
+    public Result<String> login(@RequestBody UserLoginDTO userLoginDTO, HttpServletRequest request) {
+        //先校验验证码（忽略大小写），取出后立即作废防止重复使用
+        String sessionCode = (String) request.getSession().getAttribute("loginCode");
+        request.getSession().removeAttribute("loginCode");
+        if (sessionCode == null || !sessionCode.equalsIgnoreCase(userLoginDTO.getCode())) {
+            return Result.error("验证码错误");
+        }
         //根据用户名查找这个用户
-        User dbUser = userService.getOne(new QueryWrapper<User>().eq("name", user.getName()));
+        User dbUser = userService.getOne(new QueryWrapper<User>().eq("name", userLoginDTO.getName()));
         if(dbUser == null) {
             return Result.error("用户名不存在");
         }
-        if(!PasswordUtil.matches(user.getPassword(), dbUser.getPassword())) {
+        if(!PasswordUtil.matches(userLoginDTO.getPassword(), dbUser.getPassword())) {
             return Result.error("密码错误，请重新输入");
         }
         //账号密码正确时，判断用户状态

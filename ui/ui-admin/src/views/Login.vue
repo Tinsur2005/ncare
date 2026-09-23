@@ -18,7 +18,7 @@
 -->
 <script setup>
   import {ref} from "vue";
-  import {User, Lock, House, FirstAidKit, AlarmClock} from "@element-plus/icons-vue";
+  import {User, Lock, Key, House, FirstAidKit, AlarmClock} from "@element-plus/icons-vue";
   import {ElMessage} from "element-plus";
   import {useRouter} from "vue-router";
   import userApi from "@/api/user.js";
@@ -39,14 +39,26 @@
     password: [
       {required: true, message: '请输入密码', trigger: 'blur'},
       {min: 6, max: 16, message: '长度在 6 到 16 个字符', trigger: 'blur'}
+    ],
+    code: [
+      {required: true, message: '请输入验证码', trigger: 'blur'},
+      {min: 4, max: 4, message: '验证码为4位字符', trigger: 'blur'}
     ]
   }
 
   //定义数据模型
   const user = ref({
     name: '',
-    password: ''
+    password: '',
+    code: ''
   })
+
+  //验证码图片地址（带时间戳防止浏览器缓存），点击图片或登录失败时刷新
+  const captchaUrl = ref('')
+  const refreshCaptcha = () => {
+    captchaUrl.value = `/admin/api/users/captcha?t=${Date.now()}`
+  }
+  refreshCaptcha()
 
   //左侧品牌展示区的社区服务亮点
   const brandFeatures = [
@@ -64,6 +76,9 @@
         router.push('/')
       } else {
         ElMessage.error(result.msg)
+        //验证码一次有效，登录失败后刷新验证码并清空输入
+        refreshCaptcha()
+        user.value.code = ''
       }
     })
 
@@ -118,6 +133,14 @@
           <el-form-item prop="password">
             <el-input name="password" :prefix-icon="Lock" type="password" placeholder="请输入密码"
                       v-model="user.password" show-password></el-input>
+          </el-form-item>
+          <div class="field-label">验证码 / captcha</div>
+          <el-form-item prop="code">
+            <div class="captcha-row">
+              <el-input :prefix-icon="Key" placeholder="请输入验证码" maxlength="4"
+                        v-model="user.code" @keyup.enter="login"></el-input>
+              <img class="captcha-img" :src="captchaUrl" title="看不清？点击刷新" @click="refreshCaptcha"/>
+            </div>
           </el-form-item>
           <el-form-item class="flex">
             <div class="flex">
@@ -347,6 +370,26 @@
   .card-right :deep(.el-input__wrapper.is-focus) {
     background-color: #FFFFFF;
     box-shadow: 0 0 0 1px #409eff inset;
+  }
+
+  /* 验证码输入框和验证码图片的同行布局 */
+  .captcha-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+
+    .el-input {
+      flex: 1;
+    }
+  }
+
+  /* 验证码图片：与输入框同高，点击可刷新 */
+  .captcha-img {
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    flex-shrink: 0;
   }
 
   /* 圆角登录按钮 */
